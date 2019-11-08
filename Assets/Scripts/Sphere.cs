@@ -9,8 +9,6 @@ public class Sphere : MonoBehaviour
 
     const float radians = 6.283f;
 
-    public int lineCount = 0;
-
     // Start is called before the first frame update
     void Start()
     {
@@ -19,7 +17,8 @@ public class Sphere : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        lineCount = 0;
+        if(gridSize < 1)
+            gridSize = 1;
 
         float hemiCircumference = math.PI;
 
@@ -30,9 +29,6 @@ public class Sphere : MonoBehaviour
         {
             float theta = thetaIncrement * i + (thetaIncrement * 0.5f); 
             Lines(theta);
-
-            if(lineCount > 1000)
-                return;
         }
     }
 
@@ -47,10 +43,14 @@ public class Sphere : MonoBehaviour
         for(int i = 0; i < pointCount; i++)
         {
             float phi = phiIncrement * i;
-            float3 position = PositionOnSphere(theta, phi);
-            Debug.DrawLine(float3.zero + (position*0.8f), position, new Color(position.x, position.y, position.z));
+            Line(theta, phi);
         }
-        lineCount += pointCount;
+    }
+
+    void Line(float theta, float phi)
+    {
+        float3 position = PositionOnSphere(theta, phi);
+        Debug.DrawLine(float3.zero + (position*0.8f), position, new Color(position.x, position.y, position.z));
     }
 
     float3 PositionOnSphere(float theta, float phi)
