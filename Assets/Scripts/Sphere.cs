@@ -39,9 +39,9 @@ public class Sphere : MonoBehaviour
     void Lines(float theta)
     {   
         float phiRadius = radius * math.sin(theta);
-        float phiCircumference = math.PI;
+        float phiCircumference = math.PI*2;
 
-        float phiIncrement = (gridSize / radius) / phiCircumference;
+        float phiIncrement = (gridSize / phiRadius) / (phiCircumference*0.5f);
         int pointCount = (int)(phiCircumference / phiIncrement);
 
         for(int i = 0; i < pointCount; i++)
