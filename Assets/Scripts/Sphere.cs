@@ -19,36 +19,29 @@ public class Sphere : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        //Lines(radians * 0.3f);
-        //return;
-
         lineCount = 0;
 
         float hemiCircumference = math.PI;
 
-        float phiIncrement = gridSize / hemiCircumference;
+        float phiIncrement = (gridSize / radius) / hemiCircumference;
         int pointCount = (int)(hemiCircumference / phiIncrement);
 
         for(int i = 0; i < pointCount; i++)
         {
-            float theta = phiIncrement * i; 
+            float theta = phiIncrement * i + (phiIncrement * 0.5f); 
             Lines(theta);
 
             if(lineCount > 1000)
                 return;
         }
-
-        //Debug.DrawLine(float3.zero, PositionOnSphere());   
-        //float3 drop = new float3(0, -0.1f, 0);
-        //Debug.DrawLine(float3.zero + drop, PositionOnSphere() + drop);   
     }
 
     void Lines(float theta)
     {   
         float phiRadius = radius * math.sin(theta);
-        float phiCircumference = ((phiRadius * 2) * math.PI) / radius;
+        float phiCircumference = math.PI;
 
-        float phiIncrement = gridSize / phiCircumference;
+        float phiIncrement = (gridSize / radius) / phiCircumference;
         int pointCount = (int)(phiCircumference / phiIncrement);
 
         for(int i = 0; i < pointCount; i++)
