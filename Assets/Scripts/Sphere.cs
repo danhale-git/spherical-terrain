@@ -20,10 +20,8 @@ public class Sphere : MonoBehaviour
         if(gridSize < 1)
             gridSize = 1;
 
-        float hemiCircumference = math.PI;
-
-        float thetaIncrement = (gridSize / radius) / hemiCircumference;
-        int pointCount = (int)(hemiCircumference / thetaIncrement);
+        float thetaIncrement = (gridSize / radius) / math.PI;
+        int pointCount = (int)(math.PI / thetaIncrement);
 
         for(int i = 0; i < pointCount; i++)
         {
@@ -35,14 +33,13 @@ public class Sphere : MonoBehaviour
     void Lines(float theta)
     {   
         float phiRadius = radius * math.sin(theta);
-        float phiCircumference = math.PI*2;
 
-        float phiIncrement = (gridSize / phiRadius) / (phiCircumference*0.5f);
-        int pointCount = (int)(phiCircumference / phiIncrement);
+        float phiIncrement = (gridSize / phiRadius) / math.PI;
+        int pointCount = (int)(math.PI*2 / phiIncrement);
 
         for(int i = 0; i < pointCount; i++)
         {
-            float phi = phiIncrement * i;
+            float phi = phiIncrement * i + (phiIncrement * 0.5f);
             Line(theta, phi);
         }
     }
