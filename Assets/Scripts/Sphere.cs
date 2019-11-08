@@ -46,7 +46,7 @@ public class Sphere : MonoBehaviour
 
         for(int i = 0; i < pointCount; i++)
         {
-            float phi = (radians / pointCount) * i;
+            float phi = phiIncrement * i;
             float3 position = PositionOnSphere(theta, phi);
             Debug.DrawLine(float3.zero + (position*0.8f), position, new Color(position.x, position.y, position.z));
         }
