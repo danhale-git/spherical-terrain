@@ -8,38 +8,58 @@ public class Sphere : MonoBehaviour
 
     const float radians = 6.283f;
 
+    float[][] phis;
+    float[] thetas;
+
     void Update()
     {
-        gridSize = math.clamp(gridSize, 1, 100);
-        radius = math.clamp(radius, 0, 20);
+        gridSize = math.clamp(gridSize, 2, 100);
+        radius = math.clamp(radius, 0, 15);
 
-        PlotPointsOnSphere();
+        PlotHorizontalRings();
+        DrawPoints();
     }   
 
-    void PlotPointsOnSphere()
+    void PlotHorizontalRings()
     {
         float thetaIncrement = (gridSize / radius) / math.PI;
         int pointCount = (int)(math.PI / thetaIncrement);
 
+        phis = new float[pointCount][];
+        thetas = new float[pointCount];
+
         for(int i = 0; i < pointCount; i++)
         {
-            float theta = thetaIncrement * i + (thetaIncrement * 0.5f); 
-            PlotHorizontalRing(theta);
+            float theta = thetaIncrement * i + (thetaIncrement * 0.5f);
+
+            PlotRingPoints(theta, i);
         }
     }
 
-    void PlotHorizontalRing(float theta)
+    void PlotRingPoints(float theta, int thetaIndex)
     {   
         float ringRadius = radius * math.sin(theta);
-
         float phiIncrement = (gridSize / ringRadius) / math.PI;
         int pointCount = (int)(math.PI*2 / phiIncrement);
+
+        phis[thetaIndex] = new float[pointCount];
+        thetas[thetaIndex] = theta;
 
         for(int i = 0; i < pointCount; i++)
         {
             float phi = phiIncrement * i + (phiIncrement * 0.5f);
-            DrawLine(theta, phi);
+
+            phis[thetaIndex][i] = phi;
         }
+    }
+
+    void DrawPoints()
+    {
+        for(int t = 0; t < thetas.Length; t++)
+            for(int p = 0; p < phis[t].Length; p++)
+            {
+                DrawLine(thetas[t], phis[t][p]);
+            }
     }
 
     void DrawLine(float theta, float phi)
@@ -58,5 +78,18 @@ public class Sphere : MonoBehaviour
         float z = radius * math.sin(theta) * math.sin(phi);
 
         return new float3(x, y, z);
+    }
+
+    public int Flatten2D(int x, int z, int size)
+    {
+        return (z * size) + x;
+    }
+
+    public int2 Unflatten2D(int index, int size)
+    {
+        int x = index % size;
+        int z = index / size;
+
+        return new int2(x, z);
     }
 }
