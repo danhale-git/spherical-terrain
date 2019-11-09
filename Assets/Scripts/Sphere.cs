@@ -10,14 +10,20 @@ public class Sphere : MonoBehaviour
 
     float[][] phis;
     float[] thetas;
-
-    void Update()
+    
+    void ClampInputValues()
     {
         gridSize = math.clamp(gridSize, 2, 100);
         radius = math.clamp(radius, 0, 15);
+    }
+
+    void Update()
+    {
+        ClampInputValues();
 
         PlotHorizontalRings();
-        DrawPoints();
+
+        DrawPointsInSphere();
     }   
 
     void PlotHorizontalRings()
@@ -30,7 +36,7 @@ public class Sphere : MonoBehaviour
 
         for(int i = 0; i < pointCount; i++)
         {
-            float theta = thetaIncrement * i + (thetaIncrement * 0.5f);
+            float theta = AngleInRadians(thetaIncrement, i);
 
             PlotRingPoints(theta, i);
         }
@@ -47,19 +53,32 @@ public class Sphere : MonoBehaviour
 
         for(int i = 0; i < pointCount; i++)
         {
-            float phi = phiIncrement * i + (phiIncrement * 0.5f);
+            float phi = AngleInRadians(phiIncrement, i);
 
             phis[thetaIndex][i] = phi;
         }
     }
 
-    void DrawPoints()
+    float AngleInRadians(float increment, int count)
+    {
+        return increment * count + (increment * 0.5f);
+    }
+
+    void DrawPointsInSphere()
     {
         for(int t = 0; t < thetas.Length; t++)
             for(int p = 0; p < phis[t].Length; p++)
             {
                 DrawLine(thetas[t], phis[t][p]);
             }
+    }
+
+    void DrawGridRow(float[] points)
+    {
+        for(int i = 0; i < points.Length; i++)
+        {
+
+        }
     }
 
     void DrawLine(float theta, float phi)
@@ -78,18 +97,5 @@ public class Sphere : MonoBehaviour
         float z = radius * math.sin(theta) * math.sin(phi);
 
         return new float3(x, y, z);
-    }
-
-    public int Flatten2D(int x, int z, int size)
-    {
-        return (z * size) + x;
-    }
-
-    public int2 Unflatten2D(int index, int size)
-    {
-        int x = index % size;
-        int z = index / size;
-
-        return new int2(x, z);
     }
 }
