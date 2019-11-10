@@ -101,26 +101,38 @@ public class VisualisePoints : MonoBehaviour
         {
             for(int p = 0; p < plot.positions[t].Length; p++)
             {
-                DrawLine(plot.positions[t][p]);
+                float3 position = plot.positions[t][p];
+                Color color = new Color(position.x, position.y, position.z, 0.3f);
+
+                if(adjacent.Contains(new int2(p, t)))
+                {
+                    color = new Color(color.r, color.g, color.b) * 1.25f;
+                }
+
+                Debug.DrawLine(
+                    float3.zero + (position*0.8f),
+                    position,
+                    color);
             }
         }
     }
 
     void DrawGrid()
     {
+        float3 zOffset = new float3(0, 0, radius);        
         float rowHeight = gridSize / plot.yAngles.Length;
         for(int i = 0; i < plot.yAngles.Length; i++)
         {
-            DrawGridRow(rowHeight, i);
+            DrawGridRow(rowHeight, i, zOffset);
         }
     }
 
-    void DrawGridRow(float rowHeight, int yIndex)
+    void DrawGridRow(float rowHeight, int yIndex, float3 zOffset)
     {
         float sizeInGrid = gridSize / plot.xAngles[yIndex].Length;
         for(int i = 0; i < plot.xAngles[yIndex].Length; i++)
         {
-            float3 start = new float3(sizeInGrid * i, 0, rowHeight * yIndex);
+            float3 start = new float3(sizeInGrid * i, 0, rowHeight * yIndex) + zOffset;
             float3 offset = new float3(sizeInGrid, 0, 0);
             float3 vert = new float3(0, 0, rowHeight/2);
 
@@ -137,13 +149,5 @@ public class VisualisePoints : MonoBehaviour
             Debug.DrawLine(start + vert, start+offset - vert, color);
             Debug.DrawLine(start - vert, start+offset + vert, color);
         }
-    }
-
-    void DrawLine(float3 position)
-    {
-        Debug.DrawLine(
-            float3.zero + (position*0.8f),
-            position,
-            new Color(position.x, position.y, position.z));
     }
 }
