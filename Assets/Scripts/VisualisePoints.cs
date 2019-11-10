@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Unity.Mathematics;
+using System.Collections.Generic;
 
 public class VisualisePoints : MonoBehaviour
 {
@@ -15,6 +16,7 @@ public class VisualisePoints : MonoBehaviour
     PlotPoints plot;
 
     int2 gridSelect = new int2(0, 0);
+    List<int2> adjacent = new List<int2>();
 
     void InputValues()
     {
@@ -26,19 +28,27 @@ public class VisualisePoints : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.UpArrow))
         {
             int previousY = gridSelect.y;
-            gridSelect.y = WrapIndex(gridSelect.y += 1, plot.zAngles.Length);
-            gridSelect.x = VerticalAdjacent(previousY, gridSelect.x, gridSelect.y);
+            gridSelect.y = WrapIndex(gridSelect.y += 1, plot.yAngles.Length);
+            gridSelect.x = VerticalAdjacent(gridSelect.x, previousY, gridSelect.y);
+            adjacent = plot.FindAllAdjacent(gridSelect);
         }
         if(Input.GetKeyDown(KeyCode.DownArrow))
         {
             int previousY = gridSelect.y;
-            gridSelect.y = WrapIndex(gridSelect.y -= 1, plot.zAngles.Length);
-            gridSelect.x = VerticalAdjacent(previousY, gridSelect.x, gridSelect.y);
+            gridSelect.y = WrapIndex(gridSelect.y -= 1, plot.yAngles.Length);
+            gridSelect.x = VerticalAdjacent(gridSelect.x, previousY, gridSelect.y);
+            adjacent = plot.FindAllAdjacent(gridSelect);
         }
         if(Input.GetKeyDown(KeyCode.LeftArrow))
+        {
             gridSelect.x = WrapIndex(gridSelect.x -= 1, plot.xAngles[gridSelect.y].Length);
+            adjacent = plot.FindAllAdjacent(gridSelect);
+        }
         if(Input.GetKeyDown(KeyCode.RightArrow))
+        {
             gridSelect.x = WrapIndex(gridSelect.x += 1, plot.xAngles[gridSelect.y].Length);
+            adjacent = plot.FindAllAdjacent(gridSelect);
+        }
 
     }
 
@@ -50,6 +60,26 @@ public class VisualisePoints : MonoBehaviour
         if(index < 0)
             return index + length;
         return index;
+    }
+
+    int VerticalAdjacent(int xIndex, int yIndex, int yIndexOther)
+    {
+        int length = plot.xAngles[yIndex].Length;
+        int otherLength = plot.xAngles[yIndexOther].Length;
+
+        float normalized = math.unlerp(0, length-1, (float)xIndex);
+        int interpolated = (int)math.round(math.lerp(0, otherLength-1, normalized));
+
+        return interpolated;
+    } 
+
+    float WrapBounds(float bound)
+    {
+        if(bound > 1)
+            return bound - 1f;
+        if(bound < 0)
+            return bound + 1f;
+        return bound;
     }
 
     void Update()
@@ -76,65 +106,31 @@ public class VisualisePoints : MonoBehaviour
         }
     }
 
-   /* void GetAdjacency()
-    {
-        for(int t = 0; t < thetas.Length; t++)
-        {
-            if(t == 0 || t == thetas.Length-1)
-                continue;
-
-            
-
-            float boundSize = Increment(radius * math.sin(thetas[t])) * 0.5f;
-            float nextBoundSize = Increment(radius * math.sin(thetas[t+1])) * 0.5f;
-            float prevBoundSize = Increment(radius * math.sin(thetas[t-1])) * 0.5f;
-
-            for(int p = 0; p < plot.phis[t].Length; p++)
-            {
-                float boundsStart = plot.phis[t][p] - boundSize;
-                float boundsEnd = plot.phis[t][p] + boundSize;
-
-                //Lerp to find closes index is adjacent row.
-                // Start at that index and horizontal flood fill both ways, checking bounds as you go
-            }
-        }
-    }/* */
-
-    int VerticalAdjacent(int zIndex, int xIndex, int zIndexOther)
-    {
-        int length = plot.xAngles[zIndex].Length;
-        int otherLength = plot.xAngles[zIndexOther].Length;
-        Debug.Log(length+" "+otherLength);
-
-        float normalized = math.unlerp(0, length-1, (float)xIndex);
-        int interpolated = (int)math.round(math.lerp(0, otherLength-1, normalized));
-
-        return interpolated;
-    } 
-
     void DrawGrid()
     {
-        float rowHeight = gridSize / plot.zAngles.Length;
-        for(int i = 0; i < plot.zAngles.Length; i++)
+        float rowHeight = gridSize / plot.yAngles.Length;
+        for(int i = 0; i < plot.yAngles.Length; i++)
         {
             DrawGridRow(rowHeight, i);
         }
     }
 
-    void DrawGridRow(float rowHeight, int zIndex)
+    void DrawGridRow(float rowHeight, int yIndex)
     {
-        float sizeInGrid = gridSize / plot.xAngles[zIndex].Length;
-        for(int i = 0; i < plot.xAngles[zIndex].Length; i++)
+        float sizeInGrid = gridSize / plot.xAngles[yIndex].Length;
+        for(int i = 0; i < plot.xAngles[yIndex].Length; i++)
         {
-            float3 start = new float3(sizeInGrid * i, 0, rowHeight * zIndex);
+            float3 start = new float3(sizeInGrid * i, 0, rowHeight * yIndex);
             float3 offset = new float3(sizeInGrid, 0, 0);
             float3 vert = new float3(0, 0, rowHeight/2);
 
-            float3 pos = plot.positions[zIndex][i];
+            float3 pos = plot.positions[yIndex][i];
             Color color = new Color(pos.x, pos.y, pos.z);
             
-            if(zIndex == gridSelect.y && i == gridSelect.x)
+            if(yIndex == gridSelect.y && i == gridSelect.x)
                 color = new Color(1-color.r, 1-color.g, 1-color.b);
+            else if(adjacent.Contains(new int2(i, yIndex)))
+                color = new Color(1-color.r, 1-color.g, 1-color.b) * 2;
                 
             Debug.DrawLine(start + vert, start - vert, color);
             Debug.DrawLine(start+offset + vert, start+offset - vert, color);
