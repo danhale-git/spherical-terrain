@@ -73,8 +73,8 @@ public struct PlotPoints
     public List<int2> FindAllAdjacent(int2 index)
     {
         List<int2> adjacent = new List<int2>();
-        adjacent.Add(index + new int2(1, 0));
-        adjacent.Add(index + new int2(-1, 0));
+        adjacent.Add(WrapXIndex(index + new int2(1, 0)));
+        adjacent.Add(WrapXIndex(index + new int2(-1, 0)));
         adjacent.AddRange(FindAdjacentVertical(index, +1));
         adjacent.AddRange(FindAdjacentVertical(index, -1));
 
@@ -83,10 +83,9 @@ public struct PlotPoints
 
     List<int2> FindAdjacentVertical(int2 index, int yOffset)
     {
-        int yLength = yAngles.Length;
-
-        int otherY = WrapIndex(index.y + yOffset, yLength);
-        int2 otherIndex = new int2(VerticalNeighbour(index.x, index.y, otherY), otherY);
+        int2 otherIndex = WrapYIndex(new int2(0, index.y+yOffset));
+        otherIndex.x = VerticalNeighbour(index.x, index.y, otherIndex.y);
+        otherIndex = WrapXIndex(otherIndex);
 
         int xLength = xAngles[index.y].Length;
         int xLengthOther = xAngles[otherIndex.y].Length;
@@ -106,8 +105,7 @@ public struct PlotPoints
         while(left)
         {
             cursor.x -= 1;
-            int xWrapped = WrapIndex(cursor.x, xAngles[cursor.y].Length);
-            adjacent.Add( new int2(xWrapped, cursor.y) );
+            adjacent.Add(WrapXIndex(cursor));
 
             float2 cursorBounds = GetBounds(cursor.x, xLengthOther);
             bool2 cursorIn = InBounds(cursorBounds, bounds);
@@ -119,8 +117,7 @@ public struct PlotPoints
         while(right)
         {
             cursor.x += 1;
-            int xWrapped = WrapIndex(cursor.x, xAngles[cursor.y].Length);
-            adjacent.Add( new int2(xWrapped, cursor.y) );
+            adjacent.Add( WrapXIndex(cursor) );
 
             float2 cursorBounds = GetBounds(cursor.x, xLengthOther);
             bool2 cursorIn = InBounds(cursorBounds, bounds);
@@ -130,13 +127,23 @@ public struct PlotPoints
         return adjacent;
     }
 
-    int WrapIndex(int index, int length)
+    int2 WrapYIndex(int2 index)
     {
-        int lastIndex = length-1;
-        if(index > lastIndex)
-            return index - length;
-        if(index < 0)
-            return index + length;
+        int length = yAngles.Length;
+        if(index.y > length-1)
+            return new int2(index.x, index.y - length);
+        if(index.y < 0)
+            return new int2(index.x, index.y + length);
+        return index;
+    }
+
+    int2 WrapXIndex(int2 index)
+    {
+        int length = xAngles[index.y].Length;
+        if(index.x > length-1)
+            return new int2(index.x - length, index.y);
+        if(index.x < 0)
+            return new int2(index.x + length, index.y);
         return index;
     }
 
@@ -158,6 +165,7 @@ public struct PlotPoints
 
     int VerticalNeighbour(int xIndex, int yIndex, int yIndexOther)
     {
+        Debug.Log(xAngles.Length+" "+yIndexOther);
         int length = xAngles[yIndex].Length;
         int otherLength = xAngles[yIndexOther].Length;
 
