@@ -1,10 +1,12 @@
 ﻿using UnityEngine;
 using Unity.Mathematics;
 using System.Collections.Generic;
+using UnityEditor;
 
 public class VisualisePoints : MonoBehaviour
 {
     public bool showSphere = true;
+    public bool cameraTrackCursorOnSphere = false;
     public float radius = 5;
     public float pointDistance = 5;
     
@@ -31,6 +33,9 @@ public class VisualisePoints : MonoBehaviour
             gridSelect.y = WrapIndex(gridSelect.y += 1, plot.yAngles.Length);
             gridSelect.x = VerticalAdjacent(gridSelect.x, previousY, gridSelect.y);
             adjacent = plot.FindAllAdjacent(gridSelect);
+
+            if(cameraTrackCursorOnSphere)
+                MoveCameraWithCursor();
         }
         if(Input.GetKeyDown(KeyCode.DownArrow))
         {
@@ -38,18 +43,37 @@ public class VisualisePoints : MonoBehaviour
             gridSelect.y = WrapIndex(gridSelect.y -= 1, plot.yAngles.Length);
             gridSelect.x = VerticalAdjacent(gridSelect.x, previousY, gridSelect.y);
             adjacent = plot.FindAllAdjacent(gridSelect);
+
+            if(cameraTrackCursorOnSphere)
+                MoveCameraWithCursor();
         }
         if(Input.GetKeyDown(KeyCode.LeftArrow))
         {
             gridSelect.x = WrapIndex(gridSelect.x -= 1, plot.xAngles[gridSelect.y].Length);
             adjacent = plot.FindAllAdjacent(gridSelect);
+
+            if(cameraTrackCursorOnSphere)
+                MoveCameraWithCursor();
         }
         if(Input.GetKeyDown(KeyCode.RightArrow))
         {
             gridSelect.x = WrapIndex(gridSelect.x += 1, plot.xAngles[gridSelect.y].Length);
             adjacent = plot.FindAllAdjacent(gridSelect);
+
+            if(cameraTrackCursorOnSphere)
+                MoveCameraWithCursor();
         }
 
+    }
+
+    void MoveCameraWithCursor()
+    {
+        Camera camera = SceneView.lastActiveSceneView.camera;
+        camera.transform.position = -(plot.GetPosition(gridSelect) * radius);
+        camera.transform.LookAt(float3.zero);
+
+        SceneView.lastActiveSceneView.AlignViewToObject(camera.transform);
+        SceneView.lastActiveSceneView.Repaint();
     }
 
     int WrapIndex(int index, int length)
@@ -61,7 +85,6 @@ public class VisualisePoints : MonoBehaviour
             return index + length;
         return index;
     }
-
     int VerticalAdjacent(int xIndex, int yIndex, int yIndexOther)
     {
         int length = plot.xAngles[yIndex].Length;
@@ -71,15 +94,6 @@ public class VisualisePoints : MonoBehaviour
         int interpolated = (int)math.round(math.lerp(0, otherLength-1, normalized));
 
         return interpolated;
-    } 
-
-    float WrapBounds(float bound)
-    {
-        if(bound > 1)
-            return bound - 1f;
-        if(bound < 0)
-            return bound + 1f;
-        return bound;
     }
 
     void Update()

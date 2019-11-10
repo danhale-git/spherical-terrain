@@ -19,6 +19,11 @@ public struct PlotPoints
         PlotHorizontalRings();
     }
 
+    public float3 GetPosition(int2 index)
+    {
+        return positions[index.y][index.x];
+    }
+
     void PlotHorizontalRings()
     {
         float yIncrement = (pointDistance / radius) / math.PI;
@@ -100,22 +105,22 @@ public struct PlotPoints
         {
             leftCursor.x -= 1;
             bool left = InBounds(leftCursor, index);
-            //adjacent.Add(WrapXIndex(leftCursor));
+            adjacent.Add(WrapXIndex(leftCursor));
             if(!left)
                 break;
 
-            adjacent.Add(WrapXIndex(leftCursor));
+            //adjacent.Add(WrapXIndex(leftCursor));
         }
 
         while(true)
         {
             rightCursor.x += 1;
             bool right = InBounds(rightCursor, index);
-            //adjacent.Add(WrapXIndex(rightCursor));
+            adjacent.Add(WrapXIndex(rightCursor));
             if(!right)
                 break;
 
-            adjacent.Add(WrapXIndex(rightCursor));
+            //adjacent.Add(WrapXIndex(rightCursor));
         }
 
         return adjacent;
