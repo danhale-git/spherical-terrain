@@ -5,8 +5,8 @@ using Unity.Mathematics;
 public struct PlotPoints
 {
     public float3[][] positions;
-    public float[][] phis;
-    public float[] thetas;
+    public float[][] xAngles;
+    public float[] zAngles;
 
     float radius;
     float pointDistance;
@@ -20,37 +20,37 @@ public struct PlotPoints
 
     void PlotHorizontalRings()
     {
-        float thetaIncrement = Increment(radius);
-        int pointCount = (int)(math.PI / thetaIncrement);
+        float zIncrement = Increment(radius);
+        int pointCount = (int)(math.PI / zIncrement);
 
         positions = new float3[pointCount][];
-        phis = new float[pointCount][];
-        thetas = new float[pointCount];
+        xAngles = new float[pointCount][];
+        zAngles = new float[pointCount];
 
         for(int i = 0; i < pointCount; i++)
         {
-            float theta = AngleInRadians(thetaIncrement, i);
+            float zAngle = AngleInRadians(zIncrement, i);
 
-            PlotRingPoints(theta, i);
+            PlotRingPoints(zAngle, i);
         }
     }
 
-    void PlotRingPoints(float theta, int thetaIndex)
+    void PlotRingPoints(float zAngle, int zIndex)
     {   
-        float phiIncrement = Increment(radius * math.sin(theta));
-        int pointCount = (int)(math.PI*2 / phiIncrement);
+        float xIncrement = Increment(radius * math.sin(zAngle));
+        int pointCount = (int)(math.PI*2 / xIncrement);
 
-        positions[thetaIndex] = new float3[pointCount];
-        phis[thetaIndex] = new float[pointCount];
-        thetas[thetaIndex] = theta;
+        positions[zIndex] = new float3[pointCount];
+        xAngles[zIndex] = new float[pointCount];
+        zAngles[zIndex] = zAngle;
 
         for(int i = 0; i < pointCount; i++)
         {
-            float phi = AngleInRadians(phiIncrement, i);
-            phis[thetaIndex][i] = phi;
+            float xAngle = AngleInRadians(xIncrement, i);
+            xAngles[zIndex][i] = xAngle;
 
-            float3 position = PositionOnSphere(theta, phi);
-            positions[thetaIndex][i] = position;
+            float3 position = PositionOnSphere(zAngle, xAngle);
+            positions[zIndex][i] = position;
         }
     }
 
@@ -64,11 +64,11 @@ public struct PlotPoints
         return increment * count + (increment * 0.5f);
     }
 
-    float3 PositionOnSphere(float theta, float phi)
+    float3 PositionOnSphere(float zAngle, float xAngle)
     {
-        float x = radius * math.sin(theta) * math.cos(phi);
-        float y = radius * math.cos(theta);
-        float z = radius * math.sin(theta) * math.sin(phi);
+        float x = radius * math.sin(zAngle) * math.cos(xAngle);
+        float y = radius * math.cos(zAngle);
+        float z = radius * math.sin(zAngle) * math.sin(xAngle);
 
         return new float3(x, y, z);
     }
