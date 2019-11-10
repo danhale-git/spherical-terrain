@@ -83,43 +83,40 @@ public struct PlotPoints
 
     List<int2> FindAdjacentVertical(int2 index, int yOffset)
     {
-        int2 otherIndex = WrapYIndex(new int2(0, index.y+yOffset));
-        otherIndex.x = VerticalNeighbour(index.x, index.y, otherIndex.y);
-        otherIndex = WrapXIndex(otherIndex);
+        int2 startIndex = WrapYIndex(new int2(0, index.y+yOffset));
+        startIndex.x = VerticalNeighbour(index.x, index.y, startIndex.y);
+        startIndex = WrapXIndex(startIndex);
 
-        int xLength = xAngles[index.y].Length;
-        int xLengthOther = xAngles[otherIndex.y].Length;
-
-        float2 bounds = GetBounds(index.x, xLength);
-        float2 otherBounds = GetBounds(otherIndex.x, xLengthOther);
+        float2 bounds = GetBounds(index);
+        float2 otherBounds = GetBounds(startIndex);
 
         bool2 inBounds = InBounds(otherBounds, bounds);
         bool left = inBounds.x;
         bool right = inBounds.y;
 
         List<int2> adjacent = new List<int2>();
-        adjacent.Add(otherIndex);
+        adjacent.Add(startIndex);
 
-        int2 cursor = otherIndex;
+        int2 cursor = startIndex;
 
         while(left)
         {
             cursor.x -= 1;
             adjacent.Add(WrapXIndex(cursor));
 
-            float2 cursorBounds = GetBounds(cursor.x, xLengthOther);
+            float2 cursorBounds = GetBounds(cursor);
             bool2 cursorIn = InBounds(cursorBounds, bounds);
             left = cursorIn.x;
         }
 
-        cursor = otherIndex;
+        cursor = startIndex;
 
         while(right)
         {
             cursor.x += 1;
             adjacent.Add( WrapXIndex(cursor) );
 
-            float2 cursorBounds = GetBounds(cursor.x, xLengthOther);
+            float2 cursorBounds = GetBounds(cursor);
             bool2 cursorIn = InBounds(cursorBounds, bounds);
             right = cursorIn.y;
         }
@@ -147,6 +144,16 @@ public struct PlotPoints
         return index;
     }
 
+    float2 GetBounds(int2 index)
+    {
+        int length = xAngles[index.y].Length;
+
+        float increment = math.unlerp(0, length, 1);
+        float position = math.unlerp(0, length, index.x);
+
+        return new float2(position, position + increment);
+    }
+
     bool2 InBounds(float2 check, float2 against)
     {
         bool xResult = (check.x >= against.x && check.x <= against.y);
@@ -155,17 +162,8 @@ public struct PlotPoints
         return new bool2(xResult, yResult);
     }
 
-    float2 GetBounds(int index, int length)
-    {
-        float increment = math.unlerp(0, length, 1);
-        float position = math.unlerp(0, length, index);
-
-        return new float2(position, position + increment);
-    }
-
     int VerticalNeighbour(int xIndex, int yIndex, int yIndexOther)
     {
-        Debug.Log(xAngles.Length+" "+yIndexOther);
         int length = xAngles[yIndex].Length;
         int otherLength = xAngles[yIndexOther].Length;
 
