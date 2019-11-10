@@ -24,6 +24,11 @@ public class Sphere : MonoBehaviour
         gridSize = radius * 2;
     }
 
+    void Start()
+    {
+    }
+
+    bool log = true;
     void Update()
     {
         InputValues();
@@ -35,11 +40,19 @@ public class Sphere : MonoBehaviour
 
         if(showGrid)
             DrawGrid();
+
+        if(log)
+        {
+            log = false;
+            Debug.Log(ClosestAdjacentPhi(1, 5, 2));
+        }
+               
+        
     }   
 
     void PlotHorizontalRings()
     {
-        float thetaIncrement = (pointDistance / radius) / math.PI;
+        float thetaIncrement = Increment(radius);
         int pointCount = (int)(math.PI / thetaIncrement);
 
         positions = new float3[pointCount][];
@@ -56,8 +69,7 @@ public class Sphere : MonoBehaviour
 
     void PlotRingPoints(float theta, int thetaIndex)
     {   
-        float ringRadius = radius * math.sin(theta);
-        float phiIncrement = (pointDistance / ringRadius) / math.PI;
+        float phiIncrement = Increment(radius * math.sin(theta));
         int pointCount = (int)(math.PI*2 / phiIncrement);
 
         positions[thetaIndex] = new float3[pointCount];
@@ -74,6 +86,11 @@ public class Sphere : MonoBehaviour
         }
     }
 
+    float Increment(float circleRadius)
+    {
+        return (pointDistance / circleRadius) / math.PI;
+    }
+
     float AngleInRadians(float increment, int count)
     {
         return increment * count + (increment * 0.5f);
@@ -88,6 +105,42 @@ public class Sphere : MonoBehaviour
                 DrawLine(positions[t][p]);
             }
         }
+    }
+
+    void GetAdjacency()
+    {
+        for(int t = 0; t < thetas.Length; t++)
+        {
+            if(t == 0 || t == thetas.Length-1)
+                continue;
+
+            
+
+            float boundSize = Increment(radius * math.sin(thetas[t])) * 0.5f;
+            float nextBoundSize = Increment(radius * math.sin(thetas[t+1])) * 0.5f;
+            float prevBoundSize = Increment(radius * math.sin(thetas[t-1])) * 0.5f;
+
+            for(int p = 0; p < phis[t].Length; p++)
+            {
+                float boundsStart = phis[t][p] - boundSize;
+                float boundsEnd = phis[t][p] + boundSize;
+
+                //Lerp to find closes index is adjacent row.
+                // Start at that index and horizontal flood fill both ways, checking bounds as you go
+            }
+        }
+    }
+
+    int ClosestAdjacentPhi(int thetaIndex, int phiIndex, int otherThetaIndex)
+    {
+        int length = phis[thetaIndex].Length;
+        int otherLength = phis[otherThetaIndex].Length;
+        Debug.Log(length+" "+otherLength);
+
+        float normalized = math.unlerp(0, length-1, phiIndex);
+        int interpolated = (int)math.round(math.lerp(0, otherLength-1, normalized));
+
+        return interpolated;
     }
 
     void DrawGrid()
