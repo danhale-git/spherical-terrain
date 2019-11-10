@@ -90,35 +90,32 @@ public struct PlotPoints
         float2 bounds = GetBounds(index);
         float2 otherBounds = GetBounds(startIndex);
 
-        bool2 inBounds = InBounds(otherBounds, bounds);
-        bool left = inBounds.x;
-        bool right = inBounds.y;
-
         List<int2> adjacent = new List<int2>();
         adjacent.Add(startIndex);
 
-        int2 cursor = startIndex;
+        int2 leftCursor = startIndex;
+        int2 rightCursor = startIndex;
 
-        while(left)
+        while(true)
         {
-            cursor.x -= 1;
-            adjacent.Add(WrapXIndex(cursor));
+            leftCursor.x -= 1;
+            bool left = InBounds(leftCursor, index);
+            //adjacent.Add(WrapXIndex(leftCursor));
+            if(!left)
+                break;
 
-            float2 cursorBounds = GetBounds(cursor);
-            bool2 cursorIn = InBounds(cursorBounds, bounds);
-            left = cursorIn.x;
+            adjacent.Add(WrapXIndex(leftCursor));
         }
 
-        cursor = startIndex;
-
-        while(right)
+        while(true)
         {
-            cursor.x += 1;
-            adjacent.Add( WrapXIndex(cursor) );
+            rightCursor.x += 1;
+            bool right = InBounds(rightCursor, index);
+            //adjacent.Add(WrapXIndex(rightCursor));
+            if(!right)
+                break;
 
-            float2 cursorBounds = GetBounds(cursor);
-            bool2 cursorIn = InBounds(cursorBounds, bounds);
-            right = cursorIn.y;
+            adjacent.Add(WrapXIndex(rightCursor));
         }
 
         return adjacent;
@@ -144,6 +141,22 @@ public struct PlotPoints
         return index;
     }
 
+    bool InBounds(int2 checkIndex, int2 againstIndex)
+    {
+        float2 check = GetBounds(checkIndex);
+        float checkPoint = GetPoint(checkIndex);
+        float2 against = GetBounds(againstIndex);
+
+
+        bool left =     check.x >= against.x && check.x <= against.y;
+        bool right =    check.y >= against.x && check.y <= against.y;
+        bool overlap =  check.x <= against.x && check.y >= against.y;
+
+        bool point = checkPoint >= against.x && checkPoint <= against.y;
+        
+        return (left || right || overlap || point);
+    }
+
     float2 GetBounds(int2 index)
     {
         int length = xAngles[index.y].Length;
@@ -154,12 +167,14 @@ public struct PlotPoints
         return new float2(position, position + increment);
     }
 
-    bool2 InBounds(float2 check, float2 against)
+    float GetPoint(int2 index)
     {
-        bool xResult = (check.x >= against.x && check.x <= against.y);
-        bool yResult = (check.y >= against.x && check.y <= against.y);
+        int length = xAngles[index.y].Length;
 
-        return new bool2(xResult, yResult);
+        float increment = math.unlerp(0, length, 1);
+        float position = math.unlerp(0, length, index.x);
+
+        return position + (increment*0.5f);
     }
 
     int VerticalNeighbour(int xIndex, int yIndex, int yIndexOther)
