@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using Unity.Mathematics;
 
-public class VisualisePoints : MonoBehaviour
+public class Sphere : MonoBehaviour
 {
     public bool showSphere = true;
     public float radius = 5;
@@ -14,42 +14,12 @@ public class VisualisePoints : MonoBehaviour
 
     PlotPoints plot;
 
-    int2 gridSelect = new int2(0, 0);
-
     void InputValues()
     {
         pointDistance = math.clamp(pointDistance, 2, 100);
         radius = math.clamp(radius, 0, 15);
 
         gridSize = radius * 2;
-
-        if(Input.GetKeyDown(KeyCode.UpArrow))
-        {
-            int previousY = gridSelect.y;
-            gridSelect.y = WrapIndex(gridSelect.y += 1, plot.thetas.Length);
-            gridSelect.x = ClosestAdjacentPhi(previousY, gridSelect.x, gridSelect.y);
-        }
-        if(Input.GetKeyDown(KeyCode.DownArrow))
-        {
-            int previousY = gridSelect.y;
-            gridSelect.y = WrapIndex(gridSelect.y -= 1, plot.thetas.Length);
-            gridSelect.x = ClosestAdjacentPhi(previousY, gridSelect.x, gridSelect.y);
-        }
-        if(Input.GetKeyDown(KeyCode.LeftArrow))
-            gridSelect.x = WrapIndex(gridSelect.x -= 1, plot.phis[gridSelect.y].Length);
-        if(Input.GetKeyDown(KeyCode.RightArrow))
-            gridSelect.x = WrapIndex(gridSelect.x += 1, plot.phis[gridSelect.y].Length);
-
-    }
-
-    int WrapIndex(int index, int length)
-    {
-        int lastIndex = length-1;
-        if(index > lastIndex)
-            return index - length;
-        if(index < 0)
-            return index + length;
-        return index;
     }
 
     void Update()
@@ -64,6 +34,8 @@ public class VisualisePoints : MonoBehaviour
         if(showGrid)
             DrawGrid();
     }   
+
+    
 
     void DrawPointsInSphere()
     {
@@ -98,7 +70,7 @@ public class VisualisePoints : MonoBehaviour
                 // Start at that index and horizontal flood fill both ways, checking bounds as you go
             }
         }
-    }/* */
+    }
 
     int ClosestAdjacentPhi(int thetaIndex, int phiIndex, int otherThetaIndex)
     {
@@ -106,13 +78,11 @@ public class VisualisePoints : MonoBehaviour
         int otherLength = plot.phis[otherThetaIndex].Length;
         Debug.Log(length+" "+otherLength);
 
-        float normalized = math.unlerp(0, length-1, (float)phiIndex);
+        float normalized = math.unlerp(0, length-1, phiIndex);
         int interpolated = (int)math.round(math.lerp(0, otherLength-1, normalized));
 
         return interpolated;
-    } 
-
-
+    } */
 
     void DrawGrid()
     {
@@ -134,10 +104,6 @@ public class VisualisePoints : MonoBehaviour
 
             float3 pos = plot.positions[thetaIndex][i];
             Color color = new Color(pos.x, pos.y, pos.z);
-            
-            if(thetaIndex == gridSelect.y && i == gridSelect.x)
-                color = new Color(1-color.r, 1-color.g, 1-color.b);
-                
             Debug.DrawLine(start + vert, start - vert, color);
             Debug.DrawLine(start+offset + vert, start+offset - vert, color);
             Debug.DrawLine(start + vert, start+offset - vert, color);
