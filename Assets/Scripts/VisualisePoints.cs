@@ -7,10 +7,12 @@ public class VisualisePoints : MonoBehaviour
 {
     public bool showSphere = true;
     public bool cameraTrackCursorOnSphere = false;
+    public bool showGrid = true;
+
     public float radius = 5;
     public float pointDistance = 5;
+    public float jitter = 0;
     
-    public bool showGrid = true;
     float gridSize;
 
     const float radians = 6.283f;
@@ -24,6 +26,7 @@ public class VisualisePoints : MonoBehaviour
     {
         pointDistance = math.clamp(pointDistance, 2, 100);
         radius = math.clamp(radius, 0, 15);
+        jitter = math.clamp(jitter, 0, 15);
 
         gridSize = radius * 2;
 
@@ -69,7 +72,7 @@ public class VisualisePoints : MonoBehaviour
     void MoveCameraWithCursor()
     {
         Camera camera = SceneView.lastActiveSceneView.camera;
-        camera.transform.position = -(plot.GetPosition(gridSelect) * radius);
+        camera.transform.position = -(plot.GetPosition(gridSelect) * radius) + new float3(0, 0, 1);
         camera.transform.LookAt(float3.zero);
 
         SceneView.lastActiveSceneView.AlignViewToObject(camera.transform);
@@ -100,7 +103,7 @@ public class VisualisePoints : MonoBehaviour
     {
         InputValues();
 
-        plot.PlotSphere(radius, pointDistance);
+        plot.PlotSphere(radius, pointDistance, jitter);
 
         if(showSphere)
             DrawPointsInSphere();
@@ -121,6 +124,10 @@ public class VisualisePoints : MonoBehaviour
                 if(adjacent.Contains(new int2(p, t)))
                 {
                     color = new Color(color.r, color.g, color.b) * 1.25f;
+                }
+                else if(gridSelect.Equals(new int2(p, t)))
+                {
+                    color = Color.white;
                 }
 
                 Debug.DrawLine(

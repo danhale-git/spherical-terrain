@@ -10,15 +10,18 @@ public struct PlotPoints
 
     float radius;
     float pointDistance;
+    float jitter;
 
     Unity.Mathematics.Random random;
 
-    public void PlotSphere(float radius, float pointDistance)
+    public void PlotSphere(float radius, float pointDistance, float jitter)
     {
         this.radius = radius;
         this.pointDistance = pointDistance;
-        PlotHorizontalRings();
+        this.jitter = jitter;
         random = new Unity.Mathematics.Random(1234);
+
+        PlotHorizontalRings();
     }
 
     public float3 GetPosition(int2 index)
@@ -54,9 +57,11 @@ public struct PlotPoints
         for(int i = 0; i < pointCount; i++)
         {
             float xAngle = AngleInRadians(xIncrement, i);
-            radianOffset[yIndex][i] = new float2(xAngle, yAngle);
+            float2 offset = new float2(xAngle, yAngle);
+            offset += random.NextFloat2(0, jitter);
+            radianOffset[yIndex][i] = offset;
 
-            float3 position = PositionOnSphere(yAngle, xAngle);
+            float3 position = PositionOnSphere(offset);
             worldOffset[yIndex][i] = position;
         }
     }
@@ -66,11 +71,11 @@ public struct PlotPoints
         return increment * count + (increment * 0.5f);
     }
 
-    float3 PositionOnSphere(float yAngle, float xAngle)
+    float3 PositionOnSphere(float2 radians)
     {
-        float x = radius * math.sin(yAngle) * math.cos(xAngle);
-        float y = radius * math.cos(yAngle);
-        float z = radius * math.sin(yAngle) * math.sin(xAngle);
+        float x = radius * math.sin(radians.y) * math.cos(radians.x);
+        float y = radius * math.cos(radians.y);
+        float z = radius * math.sin(radians.y) * math.sin(radians.x);
 
         return new float3(x, y, z);
     }
