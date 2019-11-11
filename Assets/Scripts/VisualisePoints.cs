@@ -36,9 +36,7 @@ public class VisualisePoints : MonoBehaviour
             gridSelect.y = WrapIndex(gridSelect.y += 1, plot.radianOffset.Length);
             gridSelect.x = VerticalAdjacent(gridSelect.x, previousY, gridSelect.y);
             adjacent = plot.FindAllAdjacent(gridSelect);
-
-            if(cameraTrackCursorOnSphere)
-                MoveCameraWithCursor();
+            ArrowKeyInput();
         }
         if(Input.GetKeyDown(KeyCode.DownArrow))
         {
@@ -46,27 +44,27 @@ public class VisualisePoints : MonoBehaviour
             gridSelect.y = WrapIndex(gridSelect.y -= 1, plot.radianOffset.Length);
             gridSelect.x = VerticalAdjacent(gridSelect.x, previousY, gridSelect.y);
             adjacent = plot.FindAllAdjacent(gridSelect);
-
-            if(cameraTrackCursorOnSphere)
-                MoveCameraWithCursor();
+            ArrowKeyInput();
         }
         if(Input.GetKeyDown(KeyCode.LeftArrow))
         {
             gridSelect.x = WrapIndex(gridSelect.x -= 1, plot.radianOffset[gridSelect.y].Length);
-            adjacent = plot.FindAllAdjacent(gridSelect);
-
-            if(cameraTrackCursorOnSphere)
-                MoveCameraWithCursor();
+            ArrowKeyInput();
         }
         if(Input.GetKeyDown(KeyCode.RightArrow))
         {
             gridSelect.x = WrapIndex(gridSelect.x += 1, plot.radianOffset[gridSelect.y].Length);
-            adjacent = plot.FindAllAdjacent(gridSelect);
-
-            if(cameraTrackCursorOnSphere)
-                MoveCameraWithCursor();
+            ArrowKeyInput();
         }
 
+    }
+
+    void ArrowKeyInput()
+    {
+        adjacent = plot.FindAllAdjacent(gridSelect);
+
+        if(cameraTrackCursorOnSphere)
+            MoveCameraWithCursor();
     }
 
     void MoveCameraWithCursor()
@@ -77,26 +75,6 @@ public class VisualisePoints : MonoBehaviour
 
         SceneView.lastActiveSceneView.AlignViewToObject(camera.transform);
         SceneView.lastActiveSceneView.Repaint();
-    }
-
-    int WrapIndex(int index, int length)
-    {
-        int lastIndex = length-1;
-        if(index > lastIndex)
-            return index - length;
-        if(index < 0)
-            return index + length;
-        return index;
-    }
-    int VerticalAdjacent(int xIndex, int yIndex, int yIndexOther)
-    {
-        int length = plot.radianOffset[yIndex].Length;
-        int otherLength = plot.radianOffset[yIndexOther].Length;
-
-        float normalized = math.unlerp(0, length-1, (float)xIndex);
-        int interpolated = (int)math.round(math.lerp(0, otherLength-1, normalized));
-
-        return interpolated;
     }
 
     void Update()
@@ -110,7 +88,35 @@ public class VisualisePoints : MonoBehaviour
 
         if(showGrid)
             DrawGrid();
-    }   
+
+        PointTesselation();
+    }
+
+    void PointTesselation()
+    {
+        float3 up = new float3(0, 0, 0.5f);
+        float3 right = new float3(0.5f, 0, 0);
+
+        int centerRingLength = plot.radianOffset[gridSelect.y].Length;
+        float2 center = plot.radianOffset[gridSelect.y][gridSelect.x];
+        float3 center3 = new float3(center.x, 0, center.y) * 10;
+
+        Debug.DrawLine(center3 + up, center3 - up);
+        Debug.DrawLine(center3 + right, center3 - right);
+        for(int i = 0; i < adjacent.Count; i++)
+        {
+            float2 radians = plot.radianOffset[adjacent[i].y][adjacent[i].x];
+            int ringLength = plot.radianOffset[adjacent[i].y].Length;
+
+            float2 normalised = math.unlerp(0, ringLength, radians);
+            float2 interpolated = radians;// = math.lerp(0, centerRingLength, normalised);
+
+            float3 interpolated3 = new float3(interpolated.x, 0, interpolated.y) * 10;
+            
+            Debug.DrawLine(interpolated3 + up, interpolated3 - up, Color.red);
+            Debug.DrawLine(interpolated3 + right, interpolated3 - right, Color.red);
+        }
+    }
 
     void DrawPointsInSphere()
     {
@@ -170,5 +176,26 @@ public class VisualisePoints : MonoBehaviour
             Debug.DrawLine(start + vert, start+offset - vert, color);
             Debug.DrawLine(start - vert, start+offset + vert, color);
         }
+    }
+
+    int WrapIndex(int index, int length)
+    {
+        int lastIndex = length-1;
+        if(index > lastIndex)
+            return index - length;
+        if(index < 0)
+            return index + length;
+        return index;
+    }
+    
+    int VerticalAdjacent(int xIndex, int yIndex, int yIndexOther)
+    {
+        int length = plot.radianOffset[yIndex].Length;
+        int otherLength = plot.radianOffset[yIndexOther].Length;
+
+        float normalized = math.unlerp(0, length-1, (float)xIndex);
+        int interpolated = (int)math.round(math.lerp(0, otherLength-1, normalized));
+
+        return interpolated;
     }
 }
