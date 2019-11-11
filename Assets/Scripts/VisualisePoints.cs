@@ -2,6 +2,23 @@
 using Unity.Mathematics;
 using System.Collections.Generic;
 using UnityEditor;
+using UnityVoronoi;
+using Unity.Collections;
+
+public struct PositionWrapper : IBowyerWatsonPoint
+{
+    public PositionWrapper(float3 worldPosition, float3 triangulatePosition)
+    {
+        this.worldPosition = worldPosition;
+        this.triangulatePosition = triangulatePosition;
+    }
+    public float3 worldPosition;
+    float3 triangulatePosition;
+    public float3 GetBowyerWatsonPoint()
+    {
+        return triangulatePosition;
+    }
+} 
 
 public class VisualisePoints : MonoBehaviour
 {
@@ -18,6 +35,7 @@ public class VisualisePoints : MonoBehaviour
     const float radians = 6.283f;
 
     PlotPoints plot;
+    BowyerWatson<PositionWrapper> bowyerWatson;
 
     int2 gridSelect = new int2(0, 0);
     List<int2> adjacent = new List<int2>();
@@ -94,28 +112,59 @@ public class VisualisePoints : MonoBehaviour
 
     void PointTesselation()
     {
+        int scale = 7;
+        var pointsToTriangulate = new List<PositionWrapper>();
         float3 up = new float3(0, 0, 0.5f);
         float3 right = new float3(0.5f, 0, 0);
 
         int centerRingLength = plot.radianOffset[gridSelect.y].Length;
         float2 center = plot.radianOffset[gridSelect.y][gridSelect.x];
-        float3 center3 = new float3(center.x, 0, center.y) * 10;
+        float3 center3 = new float3(center.x, 0, center.y) * scale;
+        float3 centerWorld = plot.worldOffset[gridSelect.y][gridSelect.x];
+        
+        pointsToTriangulate.Add(new PositionWrapper(centerWorld, center3));
 
-        Debug.DrawLine(center3 + up, center3 - up);
-        Debug.DrawLine(center3 + right, center3 - right);
+        //Debug.DrawLine(center3 + up, center3 - up, Color.green);
+        //Debug.DrawLine(center3 + right, center3 - right, Color.green);
         for(int i = 0; i < adjacent.Count; i++)
         {
             float2 radians = plot.radianOffset[adjacent[i].y][adjacent[i].x];
+            float3 radians3 = new float3(radians.x, 0, radians.y) * scale;
+            float3 world = plot.worldOffset[adjacent[i].y][adjacent[i].x];
             int ringLength = plot.radianOffset[adjacent[i].y].Length;
 
-            float2 normalised = math.unlerp(0, ringLength, radians);
-            float2 interpolated = radians;// = math.lerp(0, centerRingLength, normalised);
+            //float2 normalised = math.unlerp(0, ringLength, radians);
+            //float2 interpolated = radians;// = math.lerp(0, centerRingLength, normalised);
+            //float3 interpolated3 = new float3(interpolated.x, 0, interpolated.y) * scale;
+            //pointsToTriangulate.Add(new PositionWrapper(interpolated3));
 
-            float3 interpolated3 = new float3(interpolated.x, 0, interpolated.y) * 10;
+            pointsToTriangulate.Add(new PositionWrapper(world, radians3));
             
-            Debug.DrawLine(interpolated3 + up, interpolated3 - up, Color.red);
-            Debug.DrawLine(interpolated3 + right, interpolated3 - right, Color.red);
+            //Debug.DrawLine(radians3 + up, radians3 - up, Color.red);
+            //Debug.DrawLine(radians3 + right, radians3 - right, Color.red);
         }
+
+        NativeArray<PositionWrapper> triangulateArray = new NativeArray<PositionWrapper>(pointsToTriangulate.Count, Allocator.Persistent);
+        for(int i = 0; i < triangulateArray.Length; i++)
+            triangulateArray[i] = pointsToTriangulate[i];
+
+        var triangles = bowyerWatson.Triangulate(triangulateArray);
+        for(int i = 0; i < triangles.Length; i++)
+            DrawTriangle(triangles[i], Color.white);
+
+        triangulateArray.Dispose();
+        triangles.Dispose();
+    }
+
+    void DrawTriangle(BowyerWatson<PositionWrapper>.Triangle triangle, Color color)
+    {
+        //Debug.DrawLine(triangle.a.pos, triangle.b.pos, color);
+        //Debug.DrawLine(triangle.b.pos, triangle.c.pos, color);
+        //Debug.DrawLine(triangle.c.pos, triangle.a.pos, color);
+
+        Debug.DrawLine(triangle.a.pointObject.worldPosition, triangle.b.pointObject.worldPosition, color);
+        Debug.DrawLine(triangle.b.pointObject.worldPosition, triangle.c.pointObject.worldPosition, color);
+        Debug.DrawLine(triangle.c.pointObject.worldPosition, triangle.a.pointObject.worldPosition, color);
     }
 
     void DrawPointsInSphere()
