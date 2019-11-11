@@ -30,7 +30,7 @@ public class VisualisePoints : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.UpArrow))
         {
             int previousY = gridSelect.y;
-            gridSelect.y = WrapIndex(gridSelect.y += 1, plot.yAngles.Length);
+            gridSelect.y = WrapIndex(gridSelect.y += 1, plot.radianOffset.Length);
             gridSelect.x = VerticalAdjacent(gridSelect.x, previousY, gridSelect.y);
             adjacent = plot.FindAllAdjacent(gridSelect);
 
@@ -40,7 +40,7 @@ public class VisualisePoints : MonoBehaviour
         if(Input.GetKeyDown(KeyCode.DownArrow))
         {
             int previousY = gridSelect.y;
-            gridSelect.y = WrapIndex(gridSelect.y -= 1, plot.yAngles.Length);
+            gridSelect.y = WrapIndex(gridSelect.y -= 1, plot.radianOffset.Length);
             gridSelect.x = VerticalAdjacent(gridSelect.x, previousY, gridSelect.y);
             adjacent = plot.FindAllAdjacent(gridSelect);
 
@@ -49,7 +49,7 @@ public class VisualisePoints : MonoBehaviour
         }
         if(Input.GetKeyDown(KeyCode.LeftArrow))
         {
-            gridSelect.x = WrapIndex(gridSelect.x -= 1, plot.xAngles[gridSelect.y].Length);
+            gridSelect.x = WrapIndex(gridSelect.x -= 1, plot.radianOffset[gridSelect.y].Length);
             adjacent = plot.FindAllAdjacent(gridSelect);
 
             if(cameraTrackCursorOnSphere)
@@ -57,7 +57,7 @@ public class VisualisePoints : MonoBehaviour
         }
         if(Input.GetKeyDown(KeyCode.RightArrow))
         {
-            gridSelect.x = WrapIndex(gridSelect.x += 1, plot.xAngles[gridSelect.y].Length);
+            gridSelect.x = WrapIndex(gridSelect.x += 1, plot.radianOffset[gridSelect.y].Length);
             adjacent = plot.FindAllAdjacent(gridSelect);
 
             if(cameraTrackCursorOnSphere)
@@ -87,8 +87,8 @@ public class VisualisePoints : MonoBehaviour
     }
     int VerticalAdjacent(int xIndex, int yIndex, int yIndexOther)
     {
-        int length = plot.xAngles[yIndex].Length;
-        int otherLength = plot.xAngles[yIndexOther].Length;
+        int length = plot.radianOffset[yIndex].Length;
+        int otherLength = plot.radianOffset[yIndexOther].Length;
 
         float normalized = math.unlerp(0, length-1, (float)xIndex);
         int interpolated = (int)math.round(math.lerp(0, otherLength-1, normalized));
@@ -111,11 +111,11 @@ public class VisualisePoints : MonoBehaviour
 
     void DrawPointsInSphere()
     {
-        for(int t = 0; t < plot.positions.Length; t++)
+        for(int t = 0; t < plot.worldOffset.Length; t++)
         {
-            for(int p = 0; p < plot.positions[t].Length; p++)
+            for(int p = 0; p < plot.worldOffset[t].Length; p++)
             {
-                float3 position = plot.positions[t][p];
+                float3 position = plot.worldOffset[t][p];
                 Color color = new Color(position.x, position.y, position.z, 0.3f);
 
                 if(adjacent.Contains(new int2(p, t)))
@@ -134,8 +134,8 @@ public class VisualisePoints : MonoBehaviour
     void DrawGrid()
     {
         float3 zOffset = new float3(0, 0, radius);        
-        float rowHeight = gridSize / plot.yAngles.Length;
-        for(int i = 0; i < plot.yAngles.Length; i++)
+        float rowHeight = gridSize / plot.radianOffset.Length;
+        for(int i = 0; i < plot.radianOffset.Length; i++)
         {
             DrawGridRow(rowHeight, i, zOffset);
         }
@@ -143,14 +143,14 @@ public class VisualisePoints : MonoBehaviour
 
     void DrawGridRow(float rowHeight, int yIndex, float3 zOffset)
     {
-        float sizeInGrid = gridSize / plot.xAngles[yIndex].Length;
-        for(int i = 0; i < plot.xAngles[yIndex].Length; i++)
+        float sizeInGrid = gridSize / plot.radianOffset[yIndex].Length;
+        for(int i = 0; i < plot.radianOffset[yIndex].Length; i++)
         {
             float3 start = new float3(sizeInGrid * i, 0, rowHeight * yIndex) + zOffset;
             float3 offset = new float3(sizeInGrid, 0, 0);
             float3 vert = new float3(0, 0, rowHeight/2);
 
-            float3 pos = plot.positions[yIndex][i];
+            float3 pos = plot.worldOffset[yIndex][i];
             Color color = new Color(pos.x, pos.y, pos.z);
             
             if(yIndex == gridSelect.y && i == gridSelect.x)

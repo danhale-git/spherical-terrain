@@ -5,23 +5,25 @@ using System.Collections.Generic;
 
 public struct PlotPoints
 {
-    public float3[][] positions;
-    public float[][] xAngles;
-    public float[] yAngles;
+    public float3[][] worldOffset;
+    public float2[][] radianOffset;
 
     float radius;
     float pointDistance;
+
+    Unity.Mathematics.Random random;
 
     public void PlotSphere(float radius, float pointDistance)
     {
         this.radius = radius;
         this.pointDistance = pointDistance;
         PlotHorizontalRings();
+        random = new Unity.Mathematics.Random(1234);
     }
 
     public float3 GetPosition(int2 index)
     {
-        return positions[index.y][index.x];
+        return worldOffset[index.y][index.x];
     }
 
     void PlotHorizontalRings()
@@ -29,9 +31,8 @@ public struct PlotPoints
         float yIncrement = (pointDistance / radius) / math.PI;
         int pointCount = (int)(math.PI / yIncrement);
 
-        positions = new float3[pointCount][];
-        xAngles = new float[pointCount][];
-        yAngles = new float[pointCount];
+        worldOffset = new float3[pointCount][];
+        radianOffset = new float2[pointCount][];
 
         for(int i = 0; i < pointCount; i++)
         {
@@ -47,17 +48,16 @@ public struct PlotPoints
         float xIncrement = ( pointDistance / ringRadius ) / math.PI;
         int pointCount = (int)(math.PI*2 / xIncrement);
 
-        positions[yIndex] = new float3[pointCount];
-        xAngles[yIndex] = new float[pointCount];
-        yAngles[yIndex] = yAngle;
+        worldOffset[yIndex] = new float3[pointCount];
+        radianOffset[yIndex] = new float2[pointCount];
 
         for(int i = 0; i < pointCount; i++)
         {
             float xAngle = AngleInRadians(xIncrement, i);
-            xAngles[yIndex][i] = xAngle;
+            radianOffset[yIndex][i] = new float2(xAngle, yAngle);
 
             float3 position = PositionOnSphere(yAngle, xAngle);
-            positions[yIndex][i] = position;
+            worldOffset[yIndex][i] = position;
         }
     }
 
@@ -128,7 +128,7 @@ public struct PlotPoints
 
     int2 WrapYIndex(int2 index)
     {
-        int length = yAngles.Length;
+        int length = radianOffset.Length;
         if(index.y > length-1)
             return new int2(index.x, index.y - length);
         if(index.y < 0)
@@ -138,7 +138,7 @@ public struct PlotPoints
 
     int2 WrapXIndex(int2 index)
     {
-        int length = xAngles[index.y].Length;
+        int length = radianOffset[index.y].Length;
         if(index.x > length-1)
             return new int2(index.x - length, index.y);
         if(index.x < 0)
@@ -164,7 +164,7 @@ public struct PlotPoints
 
     float2 GetBounds(int2 index)
     {
-        int length = xAngles[index.y].Length;
+        int length = radianOffset[index.y].Length;
 
         float increment = math.unlerp(0, length, 1);
         float position = math.unlerp(0, length, index.x);
@@ -174,7 +174,7 @@ public struct PlotPoints
 
     float GetPoint(int2 index)
     {
-        int length = xAngles[index.y].Length;
+        int length = radianOffset[index.y].Length;
 
         float increment = math.unlerp(0, length, 1);
         float position = math.unlerp(0, length, index.x);
@@ -184,8 +184,8 @@ public struct PlotPoints
 
     int VerticalNeighbour(int xIndex, int yIndex, int yIndexOther)
     {
-        int length = xAngles[yIndex].Length;
-        int otherLength = xAngles[yIndexOther].Length;
+        int length = radianOffset[yIndex].Length;
+        int otherLength = radianOffset[yIndexOther].Length;
 
         float normalized = math.unlerp(0, length-1, (float)xIndex);
         int interpolated = (int)math.round(math.lerp(0, otherLength-1, normalized));
