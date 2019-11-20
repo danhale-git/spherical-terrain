@@ -1,10 +1,13 @@
 ﻿using UnityEngine;
 using Unity.Mathematics;
+using Unity.Collections;
+using UnityVoronoi;
 using System.Collections.Generic;
-
 
 public struct PlotPoints
 {
+    public bool plotted;
+
     public float3[][] worldOffset;
     public float2[][] radianOffset;
 
@@ -14,6 +17,26 @@ public struct PlotPoints
 
     Unity.Mathematics.Random random;
 
+    public struct Point : IBowyerWatsonPoint
+    {
+        float3 worldPosition;
+        float3 triangulatePosition;
+        
+        public Point(float3 worldPosition, float3 triangulatePosition)
+        {
+            this.worldPosition = worldPosition;
+            this.triangulatePosition = triangulatePosition;
+        }
+        public float3 GetBowyerWatsonPoint()
+        {
+            return triangulatePosition;
+        }
+        public float3 GetWorldPoint()
+        {
+            return worldPosition;
+        }
+    } 
+
     public void PlotSphere(float radius, float pointDistance, float jitter)
     {
         this.radius = radius;
@@ -22,6 +45,8 @@ public struct PlotPoints
         random = new Unity.Mathematics.Random(1234);
 
         PlotHorizontalRings();
+
+        plotted = true;
     }
 
     public float3 GetPosition(int2 index)
@@ -80,18 +105,22 @@ public struct PlotPoints
         return new float3(x, y, z);
     }
 
-    public List<int2> FindAllAdjacent(int2 index)
+    public NativeList<int2> FindAllAdjacent(int2 index)
     {
-        List<int2> adjacent = new List<int2>();
+        NativeList<int2> adjacent = new NativeList<int2>(Allocator.Persistent);
         adjacent.Add(WrapXIndex(index + new int2(1, 0)));
         adjacent.Add(WrapXIndex(index + new int2(-1, 0)));
-        adjacent.AddRange(FindAdjacentVertical(index, +1));
-        adjacent.AddRange(FindAdjacentVertical(index, -1));
+        NativeList<int2> above = FindAdjacentVertical(index, +1);
+        adjacent.AddRange(above);
+        above.Dispose();
+        NativeList<int2> below = FindAdjacentVertical(index, -1);
+        adjacent.AddRange(below);
+        below.Dispose();
 
         return adjacent;
     }
 
-    List<int2> FindAdjacentVertical(int2 index, int yOffset)
+    NativeList<int2> FindAdjacentVertical(int2 index, int yOffset)
     {
         int2 startIndex = WrapYIndex(new int2(0, index.y+yOffset));
         startIndex.x = VerticalNeighbour(index.x, index.y, startIndex.y);
@@ -100,7 +129,7 @@ public struct PlotPoints
         float2 bounds = GetBounds(index);
         float2 otherBounds = GetBounds(startIndex);
 
-        List<int2> adjacent = new List<int2>();
+        NativeList<int2> adjacent = new NativeList<int2>(Allocator.Temp);
         adjacent.Add(startIndex);
 
         int2 leftCursor = startIndex;
@@ -196,5 +225,34 @@ public struct PlotPoints
         int interpolated = (int)math.round(math.lerp(0, otherLength-1, normalized));
 
         return interpolated;
-    } 
+    }
+
+    public NativeArray<Point> UnwrapPoints(NativeArray<int2> adjacent, int2 center, out Point centerPos)
+    {
+        var pointsToTriangulate = new NativeList<Point>(Allocator.Temp);
+
+        float2 centerRadians = radianOffset[center.y][center.x];
+        float3 center3 = new float3(centerRadians.x, 0, centerRadians.y);
+        float3 centerWorld = worldOffset[center.y][center.x];
+        
+        centerPos = new Point(centerWorld, center3);
+        pointsToTriangulate.Add(centerPos);
+
+        for(int i = 0; i < adjacent.Length; i++)
+        {
+            float2 radians = radianOffset[adjacent[i].y][adjacent[i].x];
+            float3 radians3 = new float3(radians.x, 0, radians.y);
+            float3 world = worldOffset[adjacent[i].y][adjacent[i].x];
+
+            pointsToTriangulate.Add(new Point(world, radians3));
+        }
+
+        NativeArray<Point> triangulateArray = new NativeArray<Point>(pointsToTriangulate.Length, Allocator.Persistent);
+        for(int i = 0; i < triangulateArray.Length; i++)
+            triangulateArray[i] = pointsToTriangulate[i];
+
+        pointsToTriangulate.Dispose();
+
+        return triangulateArray;
+    }
 }

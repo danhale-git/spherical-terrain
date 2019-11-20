@@ -5,20 +5,7 @@ using UnityEditor;
 using UnityVoronoi;
 using Unity.Collections;
 
-public struct PositionWrapper : IBowyerWatsonPoint
-{
-    public PositionWrapper(float3 worldPosition, float3 triangulatePosition)
-    {
-        this.worldPosition = worldPosition;
-        this.triangulatePosition = triangulatePosition;
-    }
-    public float3 worldPosition;
-    float3 triangulatePosition;
-    public float3 GetBowyerWatsonPoint()
-    {
-        return triangulatePosition;
-    }
-} 
+
 
 public class VisualisePoints : MonoBehaviour
 {
@@ -35,17 +22,16 @@ public class VisualisePoints : MonoBehaviour
     const float radians = 6.283f;
 
     PlotPoints plot;
-    BowyerWatson<PositionWrapper> bowyerWatson;
+    BowyerWatson<PlotPoints.Point> bowyerWatson;
+    VoronoiCellGenerator<PlotPoints.Point> voronoi;
 
     int2 gridSelect = new int2(0, 0);
-    List<int2> adjacent = new List<int2>();
 
     void InputValues()
     {
         pointDistance = math.clamp(pointDistance, 2, 100);
         radius = math.clamp(radius, 0, 15);
         jitter = math.clamp(jitter, 0, 15);
-
         gridSize = radius * 2;
 
         if(Input.GetKeyDown(KeyCode.UpArrow))
@@ -53,7 +39,6 @@ public class VisualisePoints : MonoBehaviour
             int previousY = gridSelect.y;
             gridSelect.y = WrapIndex(gridSelect.y += 1, plot.radianOffset.Length);
             gridSelect.x = VerticalAdjacent(gridSelect.x, previousY, gridSelect.y);
-            adjacent = plot.FindAllAdjacent(gridSelect);
             ArrowKeyInput();
         }
         if(Input.GetKeyDown(KeyCode.DownArrow))
@@ -61,7 +46,6 @@ public class VisualisePoints : MonoBehaviour
             int previousY = gridSelect.y;
             gridSelect.y = WrapIndex(gridSelect.y -= 1, plot.radianOffset.Length);
             gridSelect.x = VerticalAdjacent(gridSelect.x, previousY, gridSelect.y);
-            adjacent = plot.FindAllAdjacent(gridSelect);
             ArrowKeyInput();
         }
         if(Input.GetKeyDown(KeyCode.LeftArrow))
@@ -74,13 +58,10 @@ public class VisualisePoints : MonoBehaviour
             gridSelect.x = WrapIndex(gridSelect.x += 1, plot.radianOffset[gridSelect.y].Length);
             ArrowKeyInput();
         }
-
     }
 
     void ArrowKeyInput()
     {
-        adjacent = plot.FindAllAdjacent(gridSelect);
-
         if(cameraTrackCursorOnSphere)
             MoveCameraWithCursor();
     }
@@ -95,6 +76,13 @@ public class VisualisePoints : MonoBehaviour
         SceneView.lastActiveSceneView.Repaint();
     }
 
+    void Start()
+    {
+        plot.PlotSphere(radius, pointDistance, jitter);
+
+        DrawAllCells();
+    }
+
     void Update()
     {
         InputValues();
@@ -106,65 +94,43 @@ public class VisualisePoints : MonoBehaviour
 
         if(showGrid)
             DrawGrid();
-
-        PointTesselation();
     }
 
-    void PointTesselation()
+    void AddVoronoiCell(int2 index)
     {
-        int scale = 7;
-        var pointsToTriangulate = new List<PositionWrapper>();
-        float3 up = new float3(0, 0, 0.5f);
-        float3 right = new float3(0.5f, 0, 0);
+        NativeList<int2> adjacent = plot.FindAllAdjacent(index);
+        PlotPoints.Point centerPos;
+        var unwrapped = plot.UnwrapPoints(adjacent, index, out centerPos);
 
-        int centerRingLength = plot.radianOffset[gridSelect.y].Length;
-        float2 center = plot.radianOffset[gridSelect.y][gridSelect.x];
-        float3 center3 = new float3(center.x, 0, center.y) * scale;
-        float3 centerWorld = plot.worldOffset[gridSelect.y][gridSelect.x];
-        
-        pointsToTriangulate.Add(new PositionWrapper(centerWorld, center3));
+        VoronoiCell cell = voronoi.GetVoronoiVertices(unwrapped, centerPos);
+        DrawVoronoiCell(cell);
 
-        //Debug.DrawLine(center3 + up, center3 - up, Color.green);
-        //Debug.DrawLine(center3 + right, center3 - right, Color.green);
-        for(int i = 0; i < adjacent.Count; i++)
+        unwrapped.Dispose();
+        adjacent.Dispose();
+    }
+
+    void DrawAllCells()
+    {
+        if(!plot.plotted)
+            return;
+
+        for(int r = 1; r < plot.radianOffset.Length-1; r++)
         {
-            float2 radians = plot.radianOffset[adjacent[i].y][adjacent[i].x];
-            float3 radians3 = new float3(radians.x, 0, radians.y) * scale;
-            float3 world = plot.worldOffset[adjacent[i].y][adjacent[i].x];
-            int ringLength = plot.radianOffset[adjacent[i].y].Length;
-
-            //float2 normalised = math.unlerp(0, ringLength, radians);
-            //float2 interpolated = radians;// = math.lerp(0, centerRingLength, normalised);
-            //float3 interpolated3 = new float3(interpolated.x, 0, interpolated.y) * scale;
-            //pointsToTriangulate.Add(new PositionWrapper(interpolated3));
-
-            pointsToTriangulate.Add(new PositionWrapper(world, radians3));
-            
-            //Debug.DrawLine(radians3 + up, radians3 - up, Color.red);
-            //Debug.DrawLine(radians3 + right, radians3 - right, Color.red);
+            for(int p = 1; p < plot.radianOffset[r].Length-1; p++)
+            {
+                int2 index = new int2(p, r);
+                AddVoronoiCell(index);
+            }
         }
-
-        NativeArray<PositionWrapper> triangulateArray = new NativeArray<PositionWrapper>(pointsToTriangulate.Count, Allocator.Persistent);
-        for(int i = 0; i < triangulateArray.Length; i++)
-            triangulateArray[i] = pointsToTriangulate[i];
-
-        var triangles = bowyerWatson.Triangulate(triangulateArray);
-        for(int i = 0; i < triangles.Length; i++)
-            DrawTriangle(triangles[i], Color.white);
-
-        triangulateArray.Dispose();
-        triangles.Dispose();
     }
 
-    void DrawTriangle(BowyerWatson<PositionWrapper>.Triangle triangle, Color color)
+    void DrawVoronoiCell(VoronoiCell cell)
     {
-        //Debug.DrawLine(triangle.a.pos, triangle.b.pos, color);
-        //Debug.DrawLine(triangle.b.pos, triangle.c.pos, color);
-        //Debug.DrawLine(triangle.c.pos, triangle.a.pos, color);
-
-        Debug.DrawLine(triangle.a.pointObject.worldPosition, triangle.b.pointObject.worldPosition, color);
-        Debug.DrawLine(triangle.b.pointObject.worldPosition, triangle.c.pointObject.worldPosition, color);
-        Debug.DrawLine(triangle.c.pointObject.worldPosition, triangle.a.pointObject.worldPosition, color);
+        for(int i = 0; i < cell.vertices.Length; i++)
+        {
+            int next = i < cell.vertices.Length-1 ? i+1 : 0;
+            Debug.DrawLine(cell.vertices[i], cell.vertices[next], Color.white, 200);
+        }
     }
 
     void DrawPointsInSphere()
@@ -175,15 +141,6 @@ public class VisualisePoints : MonoBehaviour
             {
                 float3 position = plot.worldOffset[t][p];
                 Color color = new Color(position.x, position.y, position.z, 0.3f);
-
-                if(adjacent.Contains(new int2(p, t)))
-                {
-                    color = new Color(color.r, color.g, color.b) * 1.25f;
-                }
-                else if(gridSelect.Equals(new int2(p, t)))
-                {
-                    color = Color.white;
-                }
 
                 Debug.DrawLine(
                     float3.zero + (position*0.8f),
@@ -217,8 +174,8 @@ public class VisualisePoints : MonoBehaviour
             
             if(yIndex == gridSelect.y && i == gridSelect.x)
                 color = new Color(1-color.r, 1-color.g, 1-color.b);
-            else if(adjacent.Contains(new int2(i, yIndex)))
-                color = new Color(1-color.r, 1-color.g, 1-color.b) * 2;
+            //else if(adjacent.Contains(new int2(i, yIndex)))
+            //    color = new Color(1-color.r, 1-color.g, 1-color.b) * 2;
                 
             Debug.DrawLine(start + vert, start - vert, color);
             Debug.DrawLine(start+offset + vert, start+offset - vert, color);
