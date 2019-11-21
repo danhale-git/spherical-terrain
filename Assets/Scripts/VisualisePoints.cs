@@ -26,6 +26,7 @@ public class VisualisePoints : MonoBehaviour
     VoronoiCellGenerator<PlotPoints.Point> voronoi;
 
     int2 gridSelect = new int2(0, 0);
+    List<int2> adjacentIndices = new List<int2>();
 
     void InputValues()
     {
@@ -62,6 +63,11 @@ public class VisualisePoints : MonoBehaviour
 
     void ArrowKeyInput()
     {
+        adjacentIndices.Clear();
+        var adjacent = plot.FindAllAdjacent(gridSelect);
+        adjacentIndices.AddRange(adjacent.ToArray());
+        adjacent.Dispose();
+
         if(cameraTrackCursorOnSphere)
             MoveCameraWithCursor();
     }
@@ -96,19 +102,6 @@ public class VisualisePoints : MonoBehaviour
             DrawGrid();
     }
 
-    void AddVoronoiCell(int2 index)
-    {
-        NativeList<int2> adjacent = plot.FindAllAdjacent(index);
-        PlotPoints.Point centerPos;
-        var unwrapped = plot.UnwrapPoints(adjacent, index, out centerPos);
-
-        VoronoiCell cell = voronoi.GetVoronoiVertices(unwrapped, centerPos);
-        DrawVoronoiCell(cell);
-
-        unwrapped.Dispose();
-        adjacent.Dispose();
-    }
-
     void DrawAllCells()
     {
         if(!plot.plotted)
@@ -122,6 +115,19 @@ public class VisualisePoints : MonoBehaviour
                 AddVoronoiCell(index);
             }
         }
+    }
+
+    void AddVoronoiCell(int2 index)
+    {
+        NativeList<int2> adjacent = plot.FindAllAdjacent(index);
+        PlotPoints.Point centerPos;
+        var unwrapped = plot.UnwrapPoints(adjacent, index, out centerPos);
+
+        VoronoiCell cell = voronoi.GetVoronoiVertices(unwrapped, centerPos);
+        DrawVoronoiCell(cell);
+
+        unwrapped.Dispose();
+        adjacent.Dispose();
     }
 
     void DrawVoronoiCell(VoronoiCell cell)
@@ -143,7 +149,7 @@ public class VisualisePoints : MonoBehaviour
                 Color color = new Color(position.x, position.y, position.z, 0.3f);
 
                 Debug.DrawLine(
-                    float3.zero + (position*0.8f),
+                    float3.zero + (position*0.95f),
                     position,
                     color);
             }
@@ -174,8 +180,8 @@ public class VisualisePoints : MonoBehaviour
             
             if(yIndex == gridSelect.y && i == gridSelect.x)
                 color = new Color(1-color.r, 1-color.g, 1-color.b);
-            //else if(adjacent.Contains(new int2(i, yIndex)))
-            //    color = new Color(1-color.r, 1-color.g, 1-color.b) * 2;
+            else if(adjacentIndices.Contains(new int2(i, yIndex)))
+                color = new Color(1-color.r, 1-color.g, 1-color.b) * 2;
                 
             Debug.DrawLine(start + vert, start - vert, color);
             Debug.DrawLine(start+offset + vert, start+offset - vert, color);
